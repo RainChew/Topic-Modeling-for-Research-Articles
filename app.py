@@ -12,7 +12,7 @@ with open('best_lda_model.pkl', 'rb') as f:
 
 df = pd.read_csv("data_with_topics.csv")
 
-topic_labels = {
+lda_topic_labels = {
     0: 'Statistics and Probability',
     1: 'Miscellaneous',
     2: 'Algorithmic Problem Solving',
@@ -25,6 +25,31 @@ topic_labels = {
     9: 'Physics - Quantum Mechanics'
 }
 
+with open('lsa_word2vec_model.pkl', 'rb') as f:
+    lsa_model_data = pickle.load(f)
+
+# Extract necessary components
+lsa_model_optimal = lsa_model_data['lsa_model_optimal']
+dictionary_lsa = lsa_model_data['dictionary']
+
+lsa_topic_labels = {
+    0: "Particle Physics and Supersymmetry",
+    1: "Natural Language Processing and Machine Learning",
+    2: "Chemistry and Materials Science",
+    3: "Television Broadcasting and Media",
+    4: "Cosmology and Astrophysics",
+    5: "Social Media Analysis and Sentiment Analysis",
+    6: "Computational Science and Simulation",
+    7: "Financial Analysis and Stock Market Prediction",
+    8: "Medical Imaging and Diagnostics",
+    9: "Signal Processing and Audio Engineering",
+    10: "Data Analytics and Business Intelligence",
+    11: "Software Development and Programming",
+    12: "Computer Vision and Image Processing",
+    13: "Biomedical Engineering and Health Informatics",
+    14: "Artificial Intelligence and Robotics",
+}
+
 def preprocess_text(text):
     return text.lower().split()
 
@@ -34,13 +59,21 @@ def get_topic_similarity(text):
     topic_distribution = saved_lda_model[bow_vector]
     return topic_distribution
 
+def get_topic_similarity_lsa(text):
+    processed_text = preprocess_text(text)
+    bow_vector = dictionary_lsa.doc2bow(processed_text)
+    topic_distribution = lsa_model_optimal[bow_vector]
+    return topic_distribution
+
 def get_similar_abstracts(topic, df, num_abstracts=5):
     filtered_df = df[df['Topic'] == topic]
     random_abstracts = filtered_df.sample(n=num_abstracts)[['TITLE', 'ABSTRACT']].values.tolist()
     return random_abstracts
 
-st.title('LDA Topic Similarity App')
+st.title('Topic Modeling App')
 
+# Radio button to select the model
+model_selection = st.radio("Select Model:", ('LDA', 'LSA'))
 st.write(
     f"""
     <style>
@@ -96,8 +129,15 @@ if user_input:
     st.markdown('## User Input:')
     st.write(user_input)
     st.markdown('---')
+
+    if model_selection == 'LDA':
+        topic_distribution = get_topic_similarity(user_input)
+        topic_labels = lda_topic_labels
+    elif model_selection == 'LSA':
+        topic_distribution = get_topic_similarity_lsa(user_input)
+        topic_labels = lsa_topic_labels
     
-    topic_distribution = get_topic_similarity(user_input)
+    # topic_distribution = get_topic_similarity(user_input)
     topics, scores = zip(*topic_distribution)
     
     highest_prob_topic_idx = np.argmax(scores)
@@ -105,24 +145,27 @@ if user_input:
     
     st.markdown(f"The abstract is most similar to the topic: **{highest_prob_topic_label}**")
     st.markdown('---')
-    
-    topic_df = pd.DataFrame({'Topic': [topic_labels[i] for i in topics], 'Probability': scores})
+    if model_selection == 'LDA':
+        topic_df = pd.DataFrame({'Topic': [topic_labels[i] for i in topics], 'Probability': scores})
     
     topic_distribution_sorted = sorted(topic_distribution, key=lambda x: x[1], reverse=True)
     
     sorted_topics, sorted_scores = zip(*topic_distribution_sorted)
-    sorted_topic_df = pd.DataFrame({'Topic': [topic_labels[i] for i in sorted_topics], 'Probability': sorted_scores})
-    st.markdown('## Topic Distribution:')
-    fig = px.bar(sorted_topic_df, x='Topic', y='Probability', title='Topic Distribution', color='Probability')
-    fig.update_xaxes(tickangle=45)
-    st.plotly_chart(fig)
-    st.markdown('---')
-    
-    st.markdown('## Similar Topics, Titles, and Abstracts:')
-    for topic, score in topic_distribution_sorted:
-        st.markdown(f'<div class="similar-topic">Similar to {topic_labels[topic]} (Probability: {score:.2f}):</div>', unsafe_allow_html=True)
-        similar_abstracts = get_similar_abstracts(topic, df)
-        for idx, (title, abstract) in enumerate(similar_abstracts, start=1):
-            st.markdown(f'**Title {idx}:** {title}')
-            st.markdown(f'**Abstract {idx}:** {abstract}')
+    if model_selection == 'LDA':
+        sorted_topic_df = pd.DataFrame({'Topic': [topic_labels[i] for i in sorted_topics], 'Probability': sorted_scores})
+        st.markdown('## Topic Distribution:')
+        fig = px.bar(sorted_topic_df, x='Topic', y='Probability', title='Topic Distribution', color='Probability')
+        fig.update_xaxes(tickangle=45)
+        st.plotly_chart(fig)
         st.markdown('---')
+    
+    # Only display similar abstracts for LDA
+    if model_selection == 'LDA':
+        st.markdown('## Similar Topics, Titles, and Abstracts:')
+        for topic, score in topic_distribution_sorted:
+            st.markdown(f'<div class="similar-topic">Similar to {topic_labels[topic]} (Probability: {score:.2f}):</div>', unsafe_allow_html=True)
+            similar_abstracts = get_similar_abstracts(topic, df)
+            for idx, (title, abstract) in enumerate(similar_abstracts, start=1):
+                st.markdown(f'**Title {idx}:** {title}')
+                st.markdown(f'**Abstract {idx}:** {abstract}')
+            st.markdown('---')
