@@ -11,6 +11,7 @@ with open('best_lda_model.pkl', 'rb') as f:
     saved_lda_model = pickle.load(f)
 
 df = pd.read_csv("data_with_topics.csv")
+df2 = pd.read_csv("nmf_data_with_topics.csv")
 
 lda_topic_labels = {
     0: 'Statistics and Probability',
@@ -50,6 +51,33 @@ lsa_topic_labels = {
     14: "Artificial Intelligence and Robotics",
 }
 
+# Load NMF model
+with open('nmf_model.pkl', 'rb') as f:
+    nmf_model = pickle.load(f)
+
+# Load NMF dictionary
+with open('nmf_dictionary.pkl', 'rb') as f:
+    dictionary_nmf = pickle.load(f)
+
+# Define NMF topic labels
+nmf_topic_labels = {
+    0: "Number Theory",
+    1: "Modeling and Inference",
+    2: "Optimization and Methods",
+    3: "Data Analysis and Clustering",
+    4: "System Design and Performance",
+    5: "Group Studies",
+    6: "Time and Structures",
+    7: "Sampling and Distribution",
+    8: "Problem Sets and Conditions",
+    9: "Image Processing and Methods",
+    10: "Feature Learning and Applications",
+    11: "Neural Networks and Social Learning",
+    12: "Algorithmic Learning and Machine Problems",
+    13: "Graph Structures and Randomization",
+    14: "State Transitions and Quantum Effects"
+}
+
 def preprocess_text(text):
     return text.lower().split()
 
@@ -65,15 +93,30 @@ def get_topic_similarity_lsa(text):
     topic_distribution = lsa_model_optimal[bow_vector]
     return topic_distribution
 
+def get_topic_similarity_nmf(text):
+    processed_text = preprocess_text(text)
+    bow_vector = dictionary_nmf.doc2bow(processed_text)
+    topic_distribution = nmf_model[bow_vector]
+    return topic_distribution
+
 def get_similar_abstracts(topic, df, num_abstracts=5):
     filtered_df = df[df['Topic'] == topic]
     random_abstracts = filtered_df.sample(n=num_abstracts)[['TITLE', 'ABSTRACT']].values.tolist()
     return random_abstracts
 
+
+def nmf_get_similar_abstracts(topic, df, num_abstracts=5):
+    filtered_df2 = df2[df2['Topic'] == topic]
+    random_abstracts2 = filtered_df2.sample(n=num_abstracts)[['TITLE', 'ABSTRACT']].values.tolist()
+    return random_abstracts2
+
+
+
+
 st.title('Topic Modeling App')
 
 # Radio button to select the model
-model_selection = st.radio("Select Model:", ('LDA', 'LSA'))
+model_selection = st.radio("Select Model:", ('LDA', 'LSA','NMF'))
 st.write(
     f"""
     <style>
@@ -136,7 +179,9 @@ if user_input:
     elif model_selection == 'LSA':
         topic_distribution = get_topic_similarity_lsa(user_input)
         topic_labels = lsa_topic_labels
-    
+    if model_selection == 'NMF':
+        topic_distribution = get_topic_similarity_nmf(user_input)
+        topic_labels = nmf_topic_labels
     # topic_distribution = get_topic_similarity(user_input)
     topics, scores = zip(*topic_distribution)
     
@@ -158,6 +203,13 @@ if user_input:
         fig.update_xaxes(tickangle=45)
         st.plotly_chart(fig)
         st.markdown('---')
+    if model_selection == 'NMF':
+        sorted_topic_df2 = pd.DataFrame({'Topic': [topic_labels[i] for i in sorted_topics], 'Probability': sorted_scores})
+        st.markdown('## Topic Distribution:')
+        fig = px.bar(sorted_topic_df2, x='Topic', y='Probability', title='Topic Distribution', color='Probability')
+        fig.update_xaxes(tickangle=45)
+        st.plotly_chart(fig)
+        st.markdown('---')
     
     # Only display similar abstracts for LDA
     if model_selection == 'LDA':
@@ -165,6 +217,15 @@ if user_input:
         for topic, score in topic_distribution_sorted:
             st.markdown(f'<div class="similar-topic">Similar to {topic_labels[topic]} (Probability: {score:.2f}):</div>', unsafe_allow_html=True)
             similar_abstracts = get_similar_abstracts(topic, df)
+            for idx, (title, abstract) in enumerate(similar_abstracts, start=1):
+                st.markdown(f'**Title {idx}:** {title}')
+                st.markdown(f'**Abstract {idx}:** {abstract}')
+            st.markdown('---')
+    if model_selection == 'NMF':
+        st.markdown('## Similar Topics, Titles, and Abstracts:')
+        for topic, score in topic_distribution_sorted:
+            st.markdown(f'<div class="similar-topic">Similar to {topic_labels[topic]} (Probability: {score:.2f}):</div>', unsafe_allow_html=True)
+            similar_abstracts = nmf_get_similar_abstracts(topic, df2)
             for idx, (title, abstract) in enumerate(similar_abstracts, start=1):
                 st.markdown(f'**Title {idx}:** {title}')
                 st.markdown(f'**Abstract {idx}:** {abstract}')
