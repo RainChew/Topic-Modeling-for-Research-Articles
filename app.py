@@ -11,6 +11,7 @@ with open('best_lda_model.pkl', 'rb') as f:
     saved_lda_model = pickle.load(f)
 
 df = pd.read_csv("data_with_topics.csv")
+df2 = pd.read_csv("nmf_data_with_topics.csv")
 
 lda_topic_labels = {
     0: 'Statistics and Probability',
@@ -102,6 +103,12 @@ def get_similar_abstracts(topic, df, num_abstracts=5):
     filtered_df = df[df['Topic'] == topic]
     random_abstracts = filtered_df.sample(n=num_abstracts)[['TITLE', 'ABSTRACT']].values.tolist()
     return random_abstracts
+
+
+def nmf_get_similar_abstracts(topic, df, num_abstracts=5):
+    filtered_df2 = df2[df2['Topic'] == topic]
+    random_abstracts2 = filtered_df2.sample(n=num_abstracts)[['TITLE', 'ABSTRACT']].values.tolist()
+    return random_abstracts2
 
 
 
@@ -196,6 +203,13 @@ if user_input:
         fig.update_xaxes(tickangle=45)
         st.plotly_chart(fig)
         st.markdown('---')
+    if model_selection == 'NMF':
+        sorted_topic_df2 = pd.DataFrame({'Topic': [topic_labels[i] for i in sorted_topics], 'Probability': sorted_scores})
+        st.markdown('## Topic Distribution:')
+        fig = px.bar(sorted_topic_df2, x='Topic', y='Probability', title='Topic Distribution', color='Probability')
+        fig.update_xaxes(tickangle=45)
+        st.plotly_chart(fig)
+        st.markdown('---')
     
     # Only display similar abstracts for LDA
     if model_selection == 'LDA':
@@ -203,6 +217,15 @@ if user_input:
         for topic, score in topic_distribution_sorted:
             st.markdown(f'<div class="similar-topic">Similar to {topic_labels[topic]} (Probability: {score:.2f}):</div>', unsafe_allow_html=True)
             similar_abstracts = get_similar_abstracts(topic, df)
+            for idx, (title, abstract) in enumerate(similar_abstracts, start=1):
+                st.markdown(f'**Title {idx}:** {title}')
+                st.markdown(f'**Abstract {idx}:** {abstract}')
+            st.markdown('---')
+    if model_selection == 'NMF':
+        st.markdown('## Similar Topics, Titles, and Abstracts:')
+        for topic, score in topic_distribution_sorted:
+            st.markdown(f'<div class="similar-topic">Similar to {topic_labels[topic]} (Probability: {score:.2f}):</div>', unsafe_allow_html=True)
+            similar_abstracts = nmf_get_similar_abstracts(topic, df2)
             for idx, (title, abstract) in enumerate(similar_abstracts, start=1):
                 st.markdown(f'**Title {idx}:** {title}')
                 st.markdown(f'**Abstract {idx}:** {abstract}')
