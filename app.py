@@ -50,6 +50,33 @@ lsa_topic_labels = {
     14: "Artificial Intelligence and Robotics",
 }
 
+# Load NMF model
+with open('nmf_model.pkl', 'rb') as f:
+    nmf_model = pickle.load(f)
+
+# Load NMF dictionary
+with open('nmf_dictionary.pkl', 'rb') as f:
+    dictionary_nmf = pickle.load(f)
+
+# Define NMF topic labels
+nmf_topic_labels = {
+    0: "Number Theory",
+    1: "Modeling and Inference",
+    2: "Optimization and Methods",
+    3: "Data Analysis and Clustering",
+    4: "System Design and Performance",
+    5: "Group Studies",
+    6: "Time and Structures",
+    7: "Sampling and Distribution",
+    8: "Problem Sets and Conditions",
+    9: "Image Processing and Methods",
+    10: "Feature Learning and Applications",
+    11: "Neural Networks and Social Learning",
+    12: "Algorithmic Learning and Machine Problems",
+    13: "Graph Structures and Randomization",
+    14: "State Transitions and Quantum Effects"
+}
+
 def preprocess_text(text):
     return text.lower().split()
 
@@ -70,10 +97,17 @@ def get_similar_abstracts(topic, df, num_abstracts=5):
     random_abstracts = filtered_df.sample(n=num_abstracts)[['TITLE', 'ABSTRACT']].values.tolist()
     return random_abstracts
 
+def get_topic_similarity_nmf(text):
+    processed_text = preprocess_text(text)
+    bow_vector = dictionary_nmf.doc2bow(processed_text)
+    topic_distribution = nmf_model.transform([bow_vector])[0]
+    return topic_distribution
+
+
 st.title('Topic Modeling App')
 
 # Radio button to select the model
-model_selection = st.radio("Select Model:", ('LDA', 'LSA'))
+model_selection = st.radio("Select Model:", ('LDA', 'LSA','NMF'))
 st.write(
     f"""
     <style>
@@ -136,7 +170,9 @@ if user_input:
     elif model_selection == 'LSA':
         topic_distribution = get_topic_similarity_lsa(user_input)
         topic_labels = lsa_topic_labels
-    
+    if model_selection == 'NMF':
+        topic_distribution = get_topic_similarity_nmf(user_input)
+        topic_labels = nmf_topic_labels
     # topic_distribution = get_topic_similarity(user_input)
     topics, scores = zip(*topic_distribution)
     
