@@ -92,16 +92,18 @@ def get_topic_similarity_lsa(text):
     topic_distribution = lsa_model_optimal[bow_vector]
     return topic_distribution
 
+def get_topic_similarity_nmf(text):
+    processed_text = preprocess_text(text)
+    bow_vector = dictionary_nmf.doc2bow(processed_text)
+    topic_distribution = nmf_model[bow_vector]
+    return topic_distribution
+
 def get_similar_abstracts(topic, df, num_abstracts=5):
     filtered_df = df[df['Topic'] == topic]
     random_abstracts = filtered_df.sample(n=num_abstracts)[['TITLE', 'ABSTRACT']].values.tolist()
     return random_abstracts
 
-def get_topic_similarity_nmf(text):
-    processed_text = preprocess_text(text)
-    bow_vector = dictionary_nmf.doc2bow(processed_text)
-    topic_distribution = nmf_model.transform([bow_vector])[0]
-    return topic_distribution
+
 
 
 st.title('Topic Modeling App')
