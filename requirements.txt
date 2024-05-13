@@ -1,15 +1,10 @@
-matplotlib-base
-matplotlib-inline
+matplotlib
 numpy
 pyarrow
 scikit-learn
 scipy
 seaborn
-sentence-transformers
-sentencepiece
 spacy
-spacy-legacy
-spacy-loggers
 streamlit
 tokenizers
 torch
