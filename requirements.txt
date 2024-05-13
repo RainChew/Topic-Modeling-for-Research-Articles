@@ -10,4 +10,4 @@ tokenizers
 torch
 transformers
 plotly
-dictionary
+pickle
