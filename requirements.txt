@@ -1,4 +1,4 @@
-matplotlib-base=3.8.4
+matplotlib-base
 matplotlib-inline=0.1.6
 numpy=1.26.4
 pyarrow=16.0.0
